@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akıllı Sağlık Sistemi v2.0</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* --- MODERN TASARIM (CSS) --- */
+        :root { --primary: #ff3b30; --secondary: #007aff; --bg: #f2f2f7; --card: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 0; color: #333; }
+        .container { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--card); box-shadow: 0 0 20px rgba(0,0,0,0.1); position: relative; }
+        
+        /* Başlık Alanı */
+        .header { background: linear-gradient(135deg, var(--primary), #ff6b6b); color: white; padding: 30px 20px; text-align: center; border-radius: 0 0 25px 25px; }
+        .profile-pic { width: 110px; height: 110px; border-radius: 50%; border: 4px solid white; margin-top: -10px; object-fit: cover; background: #ddd; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        h1 { margin: 10px 0 5px; font-size: 24px; }
+        .badge { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 15px; font-size: 14px; backdrop-filter: blur(5px); }
+
+        /* İçerik Alanı */
+        .content { padding: 20px; }
+        .info-card { background: #f9f9f9; border-left: 5px solid var(--primary); padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+        .value { font-size: 18px; font-weight: 600; margin-top: 5px; }
+        .critical { color: var(--primary); animation: pulse 2s infinite; }
+
+        /* Butonlar */
+        .btn { display: flex; align-items: center; justify-content: center; width: 100%; padding: 16px; margin: 10px 0; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; color: white; text-decoration: none; gap: 10px; }
+        .btn-call { background: var(--secondary); box-shadow: 0 4px 15px rgba(0,122,255,0.3); }
+        .btn-ai { background: #34c759; box-shadow: 0 4px 15px rgba(52,199,89,0.3); }
+        .btn-admin { background: #5856d6; margin-top: 30px; }
+        
+        /* Admin Formu */
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        
+        /* AI Sohbet Ekranı */
+        .chat-box { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .message { padding: 15px; border-radius: 15px; max-width: 85%; line-height: 1.4; animation: popIn 0.3s ease; }
+        .bot { background: #e5e5ea; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .user { background: var(--secondary); color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .options { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .opt-btn { flex: 1; padding: 12px; background: white; border: 1px solid var(--secondary); color: var(--secondary); border-radius: 20px; font-weight: 600; cursor: pointer; min-width: 120px; }
+        .opt-btn:hover { background: var(--secondary); color: white; }
+
+        /* Gizleme/Gösterme */
+        .hidden { display: none !important; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="viewScreen" class="container hidden">
+        <div class="header">
+            <img id="viewImg" src="" class="profile-pic">
+            <h1 id="viewName">Yükleniyor...</h1>
+            <div class="badge"><i class="fas fa-exclamation-triangle"></i> <span id="viewDisease">...</span></div>
+        </div>
+
+        <div class="content">
+            <div class="info-card">
+                <div class="label">KAN GRUBU</div>
+                <div class="value" id="viewBlood">...</div>
+            </div>
+            
+            <div class="info-card" style="border-left-color: #ff3b30; background: #fff5f5;">
+                <div class="label">⚠️ ALERJİLER (KRİTİK)</div>
+                <div class="value critical" id="viewAllergy">...</div>
+            </div>
+
+            <div class="info-card">
+                <div class="label">KULLANDIĞI İLAÇLAR</div>
+                <div class="value" id="viewMeds">...</div>
+            </div>
+
+            <a id="btnCall" href="#" class="btn btn-call"><i class="fas fa-phone-alt"></i> AİLEYİ ARA</a>
+            <button onclick="startAI()" class="btn btn-ai"><i class="fas fa-robot"></i> YAPAY ZEKA ASİSTANI BAŞLAT</button>
+            
+            <div style="text-align: center; margin-top: 20px; opacity: 0.5; font-size: 12px;">
+                <a href="?mode=admin" style="color: #999;">Yönetici Girişi</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="aiScreen" class="container hidden">
+        <div class="header" style="background: #34c759; padding: 15px;">
+            <h3><i class="fas fa-user-md"></i> Akıllı Triyaj Asistanı</h3>
+        </div>
+        <div class="content">
+            <div id="chatHistory" class="chat-box"></div>
+            <div id="chatOptions" class="options"></div>
+            <button onclick="location.reload()" class="btn btn-admin" style="background: #666; margin-top: 20px;">Çıkış / Başa Dön</button>
+        </div>
+    </div>
+
+    <div id="adminScreen" class="container hidden">
+        <div class="header" style="background: #5856d6;">
+            <h2><i class="fas fa-edit"></i> Hasta Bilgi Paneli</h2>
+            <p>NFC kartın göstereceği bilgileri düzenleyin.</p>
+        </div>
+        <div class="content">
+            <div class="form-group">
+                <label>Ad Soyad:</label>
+                <input type="text" id="inputName" placeholder="Örn: Ahmet Yılmaz">
+            </div>
+            <div class="form-group">
+                <label>Profil Fotoğrafı (Link):</label>
+                <input type="text" id="inputImg" placeholder="https://...">
+            </div>
+            <div class="form-group">
+                <label>Ana Hastalık (Tanı):</label>
+                <select id="inputDisease">
+                    <option value="EPILEPSI">Epilepsi (Sara)</option>
+                    <option value="DIYABET">Tip 1 Diyabet</option>
+                    <option value="KALP">Kalp Hastası</option>
+                    <option value="ASTIM">Astım / KOAH</option>
+                    <option value="ALERJI">Ağır Alerji (Anafilaksi)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Kan Grubu:</label>
+                <input type="text" id="inputBlood" placeholder="A Rh+">
+            </div>
+            <div class="form-group">
+                <label>Alerjiler:</label>
+                <textarea id="inputAllergy" rows="2" placeholder="Örn: Penisilin, Fıstık"></textarea>
+            </div>
+            <div class="form-group">
+                <label>İlaçlar:</label>
+                <textarea id="inputMeds" rows="2" placeholder="Örn: Depakin, İnsülin"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Acil Durum Numarası:</label>
+                <input type="tel" id="inputPhone" placeholder="+90555...">
+            </div>
+
+            <button onclick="saveData()" class="btn btn-ai">💾 BİLGİLERİ KAYDET</button>
+            <button onclick="window.location.href='?'" class="btn btn-call" style="background: #666;">Önizlemeye Git</button>
+            
+            <div class="info-card" style="margin-top: 20px; font-size: 12px;">
+                <strong>NFC Linkiniz:</strong><br>
+                <span id="nfcLink" style="word-break: break-all; color: blue;"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- JAVASCRIPT BEYNİ ---
+
+        // 1. Başlangıç Kontrolü: Hangi ekrandayız?
+        const urlParams = new URLSearchParams(window.location.search);
+        const mode = urlParams.get('mode');
+
+        // Verileri Yükle
+        const savedData = JSON.parse(localStorage.getItem('patientData')) || {
+            name: "Örnek Hasta",
+            disease: "EPILEPSI",
+            blood: "A Rh+",
+            allergy: "Bilinmiyor",
+            meds: "Yok",
+            phone: "112",
+            img: "https://via.placeholder.com/150"
+        };
+
+        if (mode === 'admin') {
+            showAdmin();
+        } else {
+            showView();
+        }
+
+        // --- FONKSİYONLAR ---
+
+        function showView() {
+            document.getElementById('viewScreen').classList.remove('hidden');
+            // Verileri yerleştir
+            document.getElementById('viewName').innerText = savedData.name;
+            document.getElementById('viewDisease').innerText = getDiseaseName(savedData.disease);
+            document.getElementById('viewBlood').innerText = savedData.blood;
+            document.getElementById('viewAllergy').innerText = savedData.allergy;
+            document.getElementById('viewMeds').innerText = savedData.meds;
+            document.getElementById('viewImg').src = savedData.img;
+            document.getElementById('btnCall').href = `tel:${savedData.phone}`;
+        }
+
+        function showAdmin() {
+            document.getElementById('adminScreen').classList.remove('hidden');
+            // Formu doldur
+            document.getElementById('inputName').value = savedData.name;
+            document.getElementById('inputDisease').value = savedData.disease;
+            document.getElementById('inputBlood').value = savedData.blood;
+            document.getElementById('inputAllergy').value = savedData.allergy;
+            document.getElementById('inputMeds').value = savedData.meds;
+            document.getElementById('inputPhone').value = savedData.phone;
+            document.getElementById('inputImg').value = savedData.img;
+            
+            // Mevcut linki göster
+            document.getElementById('nfcLink').innerText = window.location.href.split('?')[0];
+        }
+
+        function saveData() {
+            const newData = {
+                name: document.getElementById('inputName').value,
+                disease: document.getElementById('inputDisease').value,
+                blood: document.getElementById('inputBlood').value,
+                allergy: document.getElementById('inputAllergy').value,
+                meds: document.getElementById('inputMeds').value,
+                phone: document.getElementById('inputPhone').value,
+                img: document.getElementById('inputImg').value
+            };
+            localStorage.setItem('patientData', JSON.stringify(newData));
+            alert("Bilgiler cihaza kaydedildi! Şimdi önizlemeye geçebilirsiniz.");
+            window.location.href = "?"; // Ana sayfaya dön
+        }
+
+        function getDiseaseName(code) {
+            const names = {
+                'EPILEPSI': '⚠️ EPİLEPSİ HASTASI',
+                'DIYABET': '🩸 TİP 1 DİYABET',
+                'KALP': '❤️ KALP RAHATSIZLIĞI',
+                'ASTIM': '🫁 ASTIM / KOAH',
+                'ALERJI': '🐝 AĞIR ALERJİ RİSKİ'
+            };
+            return names[code] || code;
+        }
+
+        // --- GELİŞMİŞ YAPAY ZEKA MOTORU ---
+        
+        function startAI() {
+            document.getElementById('viewScreen').classList.add('hidden');
+            document.getElementById('aiScreen').classList.remove('hidden');
+            
+            const disease = savedData.disease;
+            addBotMessage(`Merhaba, ben Acil Durum Asistanı. Hastanın kayıtlı tanısı: <b>${getDiseaseName(disease)}</b>.`);
+            
+            // Hastalığa göre ilk soruyu sor
+            setTimeout(() => {
+                if (disease === 'EPILEPSI') askEpilepsy(1);
+                else if (disease === 'DIYABET') askDiabetes(1);
+                else if (disease === 'KALP') askHeart(1);
+                else askGeneral(1);
+            }, 800);
+        }
+
+        function addBotMessage(text) {
+            const chat = document.getElementById('chatHistory');
+            chat.innerHTML += `<div class="message bot">${text}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const chat = document.getElementById('chatHistory');
+            chat.innerHTML += `<div class="message user">${text}</div>`;
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function setOptions(buttons) {
+            const optDiv = document.getElementById('chatOptions');
+            optDiv.innerHTML = '';
+            buttons.forEach(btn => {
+                const b = document.createElement('button');
+                b.className = 'opt-btn';
+                b.innerText = btn.text;
+                b.onclick = () => {
+                    addUserMessage(btn.text);
+                    optDiv.innerHTML = ''; // Butonları temizle
+                    btn.action();
+                };
+                optDiv.appendChild(b);
+            });
+        }
+
+        // --- SENARYOLAR ---
+
+        // 1. EPİLEPSİ AKIŞI
+        function askEpilepsy(step) {
+            if (step === 1) {
+                addBotMessage("Hasta şu an nöbet geçiriyor mu? (Titreme, kasılma, bilinç kaybı)");
+                setOptions([
+                    { text: "Evet, Kasılıyor", action: () => { 
+                        addBotMessage("🚨 <b>NÖBET MÜDAHALESİ:</b><br>1. Sakin olun.<br>2. Hastanın başının altına yumuşak bir şey (ceket vb.) koyun.<br>3. Çevredeki sert cisimleri uzaklaştırın.<br>4. <b>ASLA AĞZINI AÇMAYA ÇALIŞMAYIN!</b>");
+                        setTimeout(() => askEpilepsy(2), 3000);
+                    }},
+                    { text: "Hayır, Durdu/Baygın", action: () => askEpilepsy(3) }
+                ]);
+            } else if (step === 2) {
+                addBotMessage("Nöbet 5 dakikadan uzun sürdü mü?");
+                setOptions([
+                    { text: "Evet, Sürüyor", action: () => addBotMessage("🚑 <b>ACİL DURUM:</b> Hemen 112'yi arayın! Nöbet uzaması (Status Epilepticus) beyne zarar verebilir.") },
+                    { text: "Hayır, Durdu", action: () => askEpilepsy(3) }
+                ]);
+            } else if (step === 3) {
+                addBotMessage("Hastanın bilinci yerine geldi mi? Nefes alıyor mu?");
+                setOptions([
+                    { text: "Nefes Alıyor, Uyuyor", action: () => addBotMessage("✅ <b>İYİLEŞME POZİSYONU:</b> Hastayı yavaşça yan çevirin. Uyanana kadar başında bekleyin. Bir şey içirmeyin.") },
+                    { text: "Tepki Yok / Morarıyor", action: () => addBotMessage("🚑 <b>KOD KIRMIZI:</b> Hemen 112'yi arayın ve kalp masajı (CPR) hazırlığı yapın!") }
+                ]);
+            }
+        }
+
+        // 2. DİYABET AKIŞI
+        function askDiabetes(step) {
+            if (step === 1) {
+                addBotMessage("Hastanın bilinci yerinde mi? Sorulara cevap verebiliyor mu?");
+                setOptions([
+                    { text: "Evet, Konuşuyor", action: () => {
+                        addBotMessage("Terleme, titreme veya açlık hissi var mı? (Şeker Düşüklüğü Belirtileri)");
+                        setOptions([
+                            { text: "Evet, Var", action: () => addBotMessage("🍬 <b>MÜDAHALE:</b> Hastaya hemen 3-4 adet kesme şeker, meyve suyu veya şekerli bir içecek verin. 15 dakika bekleyin.") },
+                            { text: "Hayır, İyi Görünüyor", action: () => addBotMessage("Hastayı dinlendirin ve kan şekerini ölçmesini sağlayın.") }
+                        ]);
+                    }},
+                    { text: "Hayır, Baygın", action: () => {
+                        addBotMessage("🚨 <b>DİYABETİK KOMA RİSKİ!</b><br>1. <b>ASLA</b> ağzına yiyecek/içecek vermeyin (Boğulabilir).<br>2. Hastayı yan çevirin (Koma pozisyonu).<br>3. Derhal 112'yi arayın.");
+                    }}
+                ]);
+            }
+        }
+
+        // 3. KALP AKIŞI
+        function askHeart(step) {
+             if (step === 1) {
+                addBotMessage("Göğüste baskı, ağrı veya sol kola vuran uyuşma var mı?");
+                setOptions([
+                    { text: "Evet, Var", action: () => {
+                        addBotMessage("❤️ <b>KALP KRİZİ ŞÜPHESİ!</b><br>1. Hastayı hareket ettirmeyin, yarı oturur pozisyona getirin.<br>2. Kravatını/yakasını gevşetin.<br>3. Varsa 300mg Aspirin çiğnetin.<br>4. 112'yi arayın.");
+                    }},
+                    { text: "Hayır, Sadece Bayıldı", action: () => addBotMessage("Ayaklarını 30cm yukarı kaldırın (Şok pozisyonu). Nabzını kontrol edin.") }
+                ]);
+             }
+        }
+        
+        // 4. GENEL/DİĞER AKIŞ
+        function askGeneral(step) {
+            addBotMessage("Hastanın durumu nedir?");
+            setOptions([
+                { text: "Baygın / Bilinç Kapalı", action: () => addBotMessage("1. Nefes alıyor mu kontrol et.<br>2. Alıyorsa YAN ÇEVİR.<br>3. Almıyorsa Temel Yaşam Desteğine başla.<br>4. 112'yi ara.") },
+                { text: "Kanama Var", action: () => addBotMessage("🩸 Temiz bir bezle kanayan yere sıkıca BASTIR. Kanama durana kadar çekme.") },
+                { text: "Kırık / Düşme", action: () => addBotMessage("Hastayı hareket ettirme. Kırık bölgeyi sabitle.") }
+            ]);
+        }
+
+    </script>
+</body>
+</html>
